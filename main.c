@@ -28,20 +28,20 @@ static int rand_level() {
     return level;
 }
 
-void skiplist_insert(Levels list, uint64_t key, uint64_t value) {
+void Insert(Levels list, uint64_t key, uint64_t value) {
     SKlist update[SKIPLIST_MAX_LEVEL + 1];
-    SKlist x = list->header;
+    SKlist S = list->header;
     int i, level;
     for (i = list->level; i >= 1; i--) {
-        while (x->forward[i]->key < key)
-            x = x->forward[i];
-        update[i] = x;
+        while (S->forward[i]->key < key)
+            S = S->forward[i];
+        update[i] = S;
     }
-    x = x->forward[1];
+    S = S->forward[1];
 
-    if (key == x->key) {
-        pre_value = x->value;
-        x->value = value;
+    if (key == S->key) {
+        pre_value = S->value;
+        S->value = value;
         dupli=1;
         return;
     } else {
@@ -53,26 +53,26 @@ void skiplist_insert(Levels list, uint64_t key, uint64_t value) {
             list->level = level;
         }
 
-        x = (SKlist) malloc(sizeof(skiplist));
-        x->key = key;
-        x->value = value;
-        x->forward = (SKlist * ) malloc(sizeof(SKlist) * (level + 1));
+        S = (SKlist) malloc(sizeof(skiplist));
+        S->key = key;
+        S->value = value;
+        S->forward = (SKlist * ) malloc(sizeof(SKlist) * (level + 1));
         for (i = 1; i <= level; i++) {
-            x->forward[i] = update[i]->forward[i];
-            update[i]->forward[i] = x;
+            S->forward[i] = update[i]->forward[i];
+            update[i]->forward[i] = S;
         }
     }
 }
 
-SKlist skiplist_search(Levels list, int key) {
-    SKlist x = list->header;
+SKlist Find(Levels list, int key) {
+    SKlist S = list->header;
     int i;
     for (i = list->level; i >= 1; i--) {
-        while (x->forward[i]->key < key)
-            x = x->forward[i];
+        while (S->forward[i]->key < key)
+            S = S->forward[i];
     }
-    if (x->forward[1]->key == key) {
-        return x->forward[1];
+    if (S->forward[1]->key == key) {
+        return S->forward[1];
     } else {
         notfound = 1;
         return NULL;
@@ -94,10 +94,10 @@ void skiplist_free(Levels list)
 }
 // 출력법
 static void skiplist_dump(Levels list) {
-    SKlist x = list->header;
-    while (x && x->forward[1] != list->header) {
-        printf("%d[%d]->", x->forward[1]->key, x->forward[1]->value);
-        x = x->forward[1];
+    SKlist S = list->header;
+    while (S && S->forward[1] != list->header) {
+        printf("%d[%d]->", S->forward[1]->key, S->forward[1]->value);
+        S = S->forward[1];
     }
     printf("NIL\n");
 }
@@ -107,12 +107,13 @@ int main() {
     Levels list;
     SKlist F;
     list = (Levels)malloc(sizeof(levelist));
-    SKlist header = (SKlist) malloc(sizeof(struct skiplist));
-    list->header = header;
-    header->key = 100000; // 조낸 큰값이 필요한 알고리즘인듯
-    header->forward = (SKlist *) malloc(sizeof(SKlist) * (SKIPLIST_MAX_LEVEL + 1));
+    SKlist H = (SKlist) malloc(sizeof(struct skiplist)); // H is Header
+
+    list->header = H;
+    H->key = ULLONG_MAX; // 조낸 큰값이 필요한 알고리즘인듯
+    H->forward = (SKlist *) malloc(sizeof(SKlist) * (SKIPLIST_MAX_LEVEL + 1));
     for (i = 0; i <= SKIPLIST_MAX_LEVEL; i++) {
-        header->forward[i] = list->header;
+        H->forward[i] = list->header;
     }
     list->level = 1;
 
@@ -127,8 +128,8 @@ int main() {
         switch(infi) {
             case 'I':
                 fscanf(open, "%lld%lld", &key, &val);
-                skiplist_insert(list, key, val);
-                skiplist_dump(list);
+                Insert(list, key, val);
+                //skiplist_dump(list);
                 if(dupli==1){
                     fprintf(close,"Found (%lld,%lld) update v=%lld\n",key,pre_value,val);
                     dupli=0;
@@ -137,7 +138,7 @@ int main() {
                 break;
             case 'F':
                 fscanf(open, "%lld", &key);
-                F = skiplist_search(list, key);
+                F = Find(list, key);
                 if(notfound==1){
                     fprintf(close,"Not Found\n");
                     notfound=0;

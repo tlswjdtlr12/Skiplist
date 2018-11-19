@@ -7,6 +7,8 @@
 typedef struct skiplist * SKlist;
 typedef struct levelist * Levels;
 FILE * close;
+int dupli, notfound;
+uint64_t pre_value;
 
 typedef struct skiplist {
     uint64_t key;
@@ -26,7 +28,7 @@ static int rand_level() {
     return level;
 }
 
-int skiplist_insert(Levels list, uint64_t key, uint64_t value) {
+void skiplist_insert(Levels list, uint64_t key, uint64_t value) {
     SKlist update[SKIPLIST_MAX_LEVEL + 1];
     SKlist x = list->header;
     int i, level;
@@ -38,8 +40,10 @@ int skiplist_insert(Levels list, uint64_t key, uint64_t value) {
     x = x->forward[1];
 
     if (key == x->key) {
+        pre_value = x->value;
         x->value = value;
-        return 0;
+        dupli=1;
+        return;
     } else {
         level = rand_level();
         if (level > list->level) {
@@ -58,7 +62,6 @@ int skiplist_insert(Levels list, uint64_t key, uint64_t value) {
             update[i]->forward[i] = x;
         }
     }
-    return 0;
 }
 
 SKlist skiplist_search(Levels list, int key) {
@@ -71,42 +74,9 @@ SKlist skiplist_search(Levels list, int key) {
     if (x->forward[1]->key == key) {
         return x->forward[1];
     } else {
+        notfound = 1;
         return NULL;
     }
-}
-
-static void skiplist_node_free(SKlist x) {
-    if (x) {
-        free(x->forward);
-        free(x);
-    }
-}
-
-int skiplist_delete(Levels list, int key) {
-    int i;
-    SKlist update[SKIPLIST_MAX_LEVEL + 1];
-    SKlist x = list->header;
-    for (i = list->level; i >= 1; i--) {
-        while (x->forward[i]->key < key)
-            x = x->forward[i];
-        update[i] = x;
-    }
-
-    x = x->forward[1];
-    if (x->key == key) {
-        for (i = 1; i <= list->level; i++) {
-            if (update[i]->forward[i] != x)
-                break;
-            update[i]->forward[i] = x->forward[i];
-        }
-        skiplist_node_free(x);
-
-        while (list->level > 1 && list->header->forward[list->level]
-                                  == list->header)
-            list->level--;
-        return 0;
-    }
-    return 1;
 }
 
 void skiplist_free(Levels list)
@@ -159,26 +129,22 @@ int main() {
                 fscanf(open, "%lld%lld", &key, &val);
                 skiplist_insert(list, key, val);
                 skiplist_dump(list);
-//                if(dupli==1){
-//                    fprintf(close,"Found (%d,%d) update v=%d\n",key,pre_value,val);
-//                    dupli=0;
-//                }
-//                else fprintf(close,"Inserted (%d,%d)\n",key,val);
+                if(dupli==1){
+                    fprintf(close,"Found (%lld,%lld) update v=%lld\n",key,pre_value,val);
+                    dupli=0;
+                }
+                else fprintf(close,"Inserted (%lld,%lld)\n",key,val);
                 break;
             case 'F':
                 fscanf(open, "%lld", &key);
                 F = skiplist_search(list, key);
-//                if(notfound==1){
-//                    fprintf(close,"Not Found\n");
-//                    notfound=0;
-//                    depth=0;
-//                }
-//                else{
-//                    fprintf(close,"Found (%d,%d) on d=%d with c=",F->Key,F->Value,depth-1); // depth-1 : because header
-//                    if(F->Color==Red)fprintf(close,"red\n");
-//                    else fprintf(close,"black\n");
-//                    depth=0;
-//                }
+                if(notfound==1){
+                    fprintf(close,"Not Found\n");
+                    notfound=0;
+                }
+                else{
+                    fprintf(close,"Found (%lld,%lld)\n",F->key,F->value);
+                }
                 break;
             case 'Q':
                 // end of file
@@ -186,31 +152,6 @@ int main() {
         }
     }
 
-
-
-
-
-    printf("Insert:--------------------\n");
-//    for (i = 0; i < sizeof(arr) / sizeof(arr[0]); i++) {
-//        skiplist_insert(list, arr[i], arr[i]);
-//    }
-   // skiplist_dump(list);
-
-    printf("Search:--------------------\n");
-    int keys[] = { 3, 4, 7, 10, 111 };
-
-    for (i = 0; i < sizeof(keys) / sizeof(keys[0]); i++) {
-        SKlist x = skiplist_search(list, keys[i]);
-        if (x) {
-            printf("key = %d, value = %d\n", keys[i], x->value);
-        } else {
-            printf("key = %d, not fuound\n", keys[i]);
-        }
-    }
-
-    printf("Search:--------------------\n");
-  //  skiplist_delete(list, 3);
-  //  skiplist_delete(list, 9);
   //  skiplist_dump(list);
     skiplist_free(list);
 

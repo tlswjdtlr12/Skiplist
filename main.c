@@ -4,27 +4,32 @@
 
 #define SKIPLIST_MAX_LEVEL 6
 
-
-
-typedef struct snode {
-    int key;
-    int value;
-    struct snode **forward;
-} snode;
+typedef struct skiplist * SKlist;
+typedef struct levelist * Levels;
 
 typedef struct skiplist {
-    int level;
-    // int size;
-    struct snode *header;
+    int key;
+    int value;
+    struct skiplist ** forward;
 } skiplist;
 
-skiplist *skiplist_init(skiplist *list)
+typedef struct levelist {
+    int level;
+    struct skiplist * header;
+} levelist;
+
+SKlist skiplist_init(Levels list)
 {
     int i;
-    snode *header = (snode *) malloc(sizeof(struct snode));
+    SKlist header = (SKlist) malloc(sizeof(struct skiplist));
     list->header = header;
-    header->key = INT_MAX;
-    header->forward = (snode **) malloc(sizeof(snode*) * (SKIPLIST_MAX_LEVEL + 1));
+
+    // 조낸 큰값이 필요한 알고리즘인듯
+    header->key = 100000;
+
+
+
+    header->forward = (SKlist *) malloc(sizeof(SKlist) * (SKIPLIST_MAX_LEVEL + 1));
     for (i = 0; i <= SKIPLIST_MAX_LEVEL; i++) {
         header->forward[i] = list->header;
     }
@@ -42,9 +47,9 @@ static int rand_level() {
     return level;
 }
 
-int skiplist_insert(skiplist *list, int key, int value) {
-    snode *update[SKIPLIST_MAX_LEVEL + 1];
-    snode *x = list->header;
+int skiplist_insert(Levels list, int key, int value) {
+    SKlist update[SKIPLIST_MAX_LEVEL + 1];
+    SKlist x = list->header;
     int i, level;
     for (i = list->level; i >= 1; i--) {
         while (x->forward[i]->key < key)
@@ -65,10 +70,10 @@ int skiplist_insert(skiplist *list, int key, int value) {
             list->level = level;
         }
 
-        x = (snode *) malloc(sizeof(snode));
+        x = (SKlist) malloc(sizeof(skiplist));
         x->key = key;
         x->value = value;
-        x->forward = (snode **) malloc(sizeof(snode*) * (level + 1));
+        x->forward = (SKlist * ) malloc(sizeof(SKlist) * (level + 1));
         for (i = 1; i <= level; i++) {
             x->forward[i] = update[i]->forward[i];
             update[i]->forward[i] = x;
@@ -77,8 +82,8 @@ int skiplist_insert(skiplist *list, int key, int value) {
     return 0;
 }
 
-snode *skiplist_search(skiplist *list, int key) {
-    snode *x = list->header;
+SKlist skiplist_search(Levels list, int key) {
+    SKlist x = list->header;
     int i;
     for (i = list->level; i >= 1; i--) {
         while (x->forward[i]->key < key)
@@ -89,20 +94,19 @@ snode *skiplist_search(skiplist *list, int key) {
     } else {
         return NULL;
     }
-    return NULL;
 }
 
-static void skiplist_node_free(snode *x) {
+static void skiplist_node_free(SKlist x) {
     if (x) {
         free(x->forward);
         free(x);
     }
 }
 
-int skiplist_delete(skiplist *list, int key) {
+int skiplist_delete(Levels list, int key) {
     int i;
-    snode *update[SKIPLIST_MAX_LEVEL + 1];
-    snode *x = list->header;
+    SKlist update[SKIPLIST_MAX_LEVEL + 1];
+    SKlist x = list->header;
     for (i = list->level; i >= 1; i--) {
         while (x->forward[i]->key < key)
             x = x->forward[i];
@@ -126,11 +130,11 @@ int skiplist_delete(skiplist *list, int key) {
     return 1;
 }
 
-void skiplist_free(skiplist *list)
+void skiplist_free(Levels list)
 {
-    snode *current_node = list->header->forward[1];
+    SKlist current_node = list->header->forward[1];
     while(current_node != list->header) {
-        snode *next_node = current_node->forward[1];
+        SKlist next_node = current_node->forward[1];
         free(current_node->forward);
         free(current_node);
         current_node = next_node;
@@ -140,8 +144,8 @@ void skiplist_free(skiplist *list)
     free(list);
 }
 
-static void skiplist_dump(skiplist *list) {
-    snode *x = list->header;
+static void skiplist_dump(Levels list) {
+    SKlist x = list->header;
     while (x && x->forward[1] != list->header) {
         printf("%d[%d]->", x->forward[1]->key, x->forward[1]->value);
         x = x->forward[1];
@@ -151,8 +155,8 @@ static void skiplist_dump(skiplist *list) {
 
 int main() {
     int arr[] = { 3, 6, 9, 2, 11, 1, 4 }, i;
-    skiplist * list;
-    list = (skiplist *)malloc(sizeof(skiplist));
+    Levels list;
+    list = (Levels)malloc(sizeof(levelist));
     skiplist_init(list);
 
     printf("Insert:--------------------\n");
@@ -165,7 +169,7 @@ int main() {
     int keys[] = { 3, 4, 7, 10, 111 };
 
     for (i = 0; i < sizeof(keys) / sizeof(keys[0]); i++) {
-        snode *x = skiplist_search(list, keys[i]);
+        SKlist x = skiplist_search(list, keys[i]);
         if (x) {
             printf("key = %d, value = %d\n", keys[i], x->value);
         } else {

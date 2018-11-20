@@ -133,7 +133,7 @@ int main() {
     }
     clock_gettime(CLOCK_MONOTONIC, &end);
     elapsed_time = (end.tv_nsec - start.tv_nsec) + (end.tv_sec - start.tv_sec) * BILLION;
-    printf("elapsed_time : %f", elapsed_time);
+    printf("elapsed_time : %llu", elapsed_time);
 
     // list free
     SKlist current = list->header->forward[1];
